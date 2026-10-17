@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OurTV</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="OurTV turns the streaming services you already pay for into TV channels with a live program guide. Press Watch and join the show already in progress.">
+<meta property="og:title" content="OurTV">
+<meta property="og:description" content="Make your own TV channels from the streaming services you already have, and share them with everyone.">
+<meta property="og:url" content="https://ourtvnow.com/">
+<link rel="canonical" href="https://ourtvnow.com/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a program guide is the hero; the page below reads like the guide's own listings — rows, channel numbers, time. */
+:root {
+  color-scheme: dark;
+  --font-sans: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Instrument Sans', 'Segoe UI', sans-serif;
+
+  /* Same three jobs as the app: violet is OurTV, lime is on air now, gold is later / needs you */
+  --accent: #d29bf5;
+  --accent-hover: #e2b6ff;
+  --accent-ink: #2b1040;
+  --accent-soft: #3a1e52;
+  --accent-tint: #221534;
+  --on-air: #b8e88a;
+  --on-air-ink: #14220c;
+  --on-air-soft: #161e12;
+  --on-air-border: #2e3c23;
+  --on-air-track: #2b3524;
+  --gold: #e8c07a;
+  --gold-soft: #201b14;
+  --gold-border: #453720;
+
+  --base: #120e16;
+  --deep: #181222;
+  --panel: #1a151e;
+  --program: #1d1826;
+  --program-hover: #262031;
+  --line: #332a3c;
+  --program-border: #2e2739;
+  --text: #f4f1f7;
+  --muted: #a69ab2;
+  --subtle: #746a80;
+  --glow: #d29bf522;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --accent: #7b26b8; --accent-hover: #68199f; --accent-ink: #ffffff; --accent-soft: #f2e6fc; --accent-tint: #f6effd;
+    --on-air: #3f7d16; --on-air-ink: #ffffff; --on-air-soft: #ecf7df; --on-air-border: #c3dfa4; --on-air-track: #d6e9c2;
+    --gold: #8a5c0c; --gold-soft: #fbf3e2; --gold-border: #ead6ad;
+    --base: #faf7fc; --deep: #f3edf8; --panel: #ffffff; --program: #fbf9fd; --program-hover: #f4eefa;
+    --line: #e4dbec; --program-border: #e8e0ef; --text: #1d1424; --muted: #63586e; --subtle: #8b8096; --glow: #7b26b814;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --accent: #7b26b8; --accent-hover: #68199f; --accent-ink: #ffffff; --accent-soft: #f2e6fc; --accent-tint: #f6effd;
+  --on-air: #3f7d16; --on-air-ink: #ffffff; --on-air-soft: #ecf7df; --on-air-border: #c3dfa4; --on-air-track: #d6e9c2;
+  --gold: #8a5c0c; --gold-soft: #fbf3e2; --gold-border: #ead6ad;
+  --base: #faf7fc; --deep: #f3edf8; --panel: #ffffff; --program: #fbf9fd; --program-hover: #f4eefa;
+  --line: #e4dbec; --program-border: #e8e0ef; --text: #1d1424; --muted: #63586e; --subtle: #8b8096; --glow: #7b26b814;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem); line-height: 1.1; }
+h3 { font-size: 1.15rem; line-height: 1.25; font-weight: 600; }
+p { margin: 0; }
+.eyebrow {
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.lede { color: var(--muted); font-size: 1.1rem; max-width: 60ch; }
+
+/* Top bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--base); }
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--base) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.top .wrap { display: flex; align-items: center; gap: 24px; padding-block: 14px; }
+.mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; }
+.mark svg { flex: none; }
+.mark-tv { color: var(--accent); }
+.top nav { display: flex; gap: 22px; margin-left: auto; font-size: 0.95rem; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--text); }
+@media (max-width: 720px) { .top nav a:not(.nav-cta) { display: none; } }
+.nav-cta { color: var(--accent) !important; font-weight: 600; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px; justify-content: center;
+  padding: 13px 20px; border-radius: 10px; font: inherit; font-weight: 600; text-decoration: none;
+  border: 1px solid transparent; cursor: pointer;
+}
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: var(--accent-hover); color: var(--accent-ink); }
+.btn-quiet { background: transparent; color: var(--text); border-color: var(--line); }
+.btn-quiet:hover { background: var(--program-hover); color: var(--text); }
+.btn[aria-disabled="true"] { cursor: default; opacity: 0.7; }
+
+/* Hero */
+.hero { padding-block: 64px 40px; display: grid; gap: 40px; }
+.hero h1 { font-size: clamp(2.4rem, 1.4rem + 4.4vw, 4.6rem); line-height: 1.0; font-weight: 800; max-width: 14ch; }
+.hero h1 em { font-style: normal; color: var(--on-air); }
+.hero-copy { display: grid; gap: 22px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.hero-note { color: var(--subtle); font-size: 0.9rem; }
+
+/* The guide */
+.guide {
+  border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
+  box-shadow: 0 30px 120px var(--glow);
+  overflow: hidden;
+}
+.guide-head {
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--deep);
+}
+.guide-head strong { font-family: var(--font-display); font-size: 1.05rem; }
+.clock { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.9rem; }
+.clock b { color: var(--on-air); font-weight: 600; }
+.guide-scroll { overflow-x: auto; }
+.guide-grid { min-width: 760px; }
+.g-row { display: grid; grid-template-columns: 150px 1.5fr 1fr 1fr; border-bottom: 1px solid var(--line); }
+.g-row:last-child { border-bottom: 0; }
+.g-cols { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--subtle); }
+.g-cols > div { padding: 8px 14px; }
+.g-ch { padding: 14px; display: grid; gap: 2px; align-content: center; border-right: 1px solid var(--line); }
+.g-ch .num { font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; font-variant-numeric: tabular-nums; line-height: 1; }
+.g-ch .name { font-size: 0.82rem; color: var(--muted); line-height: 1.25; }
+.g-prog {
+  margin: 6px; padding: 10px 12px; border-radius: 9px; background: var(--program); border: 1px solid var(--program-border);
+  display: grid; gap: 4px; align-content: start; min-width: 0; text-align: left; font: inherit; color: inherit;
+}
+.g-prog .t { font-weight: 600; font-size: 0.95rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-prog .ep { font-size: 0.8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-prog .meta { display: flex; gap: 8px; align-items: center; font-size: 0.75rem; color: var(--subtle); font-variant-numeric: tabular-nums; }
+.svc { padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+button.g-prog.now { background: var(--on-air-soft); border-color: var(--on-air-border); cursor: pointer; }
+button.g-prog.now:hover { border-color: var(--on-air); }
+.bar { height: 4px; border-radius: 4px; background: var(--on-air-track); overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--on-air); border-radius: 4px; }
+.watch-hint { font-size: 0.75rem; color: var(--on-air); font-weight: 600; }
+.g-prog.later .meta b { color: var(--gold); font-weight: 600; }
+
+.tune {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  padding: 12px 18px; border-top: 1px solid var(--line); background: var(--deep); font-size: 0.9rem; color: var(--muted);
+  min-height: 48px;
+}
+.tune .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--on-air); box-shadow: 0 0 0 4px var(--on-air-soft); flex: none; }
+.tune b { color: var(--text); font-weight: 600; }
+.tune .pos { font-variant-numeric: tabular-nums; color: var(--on-air); font-weight: 600; }
+
+section { padding-block: 72px; }
+section + section { border-top: 1px solid var(--line); }
+.section-head { display: grid; gap: 14px; margin-bottom: 40px; }
+
+/* Make & share: the page's loudest section */
+.create { background: var(--accent-tint); }
+.create-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
+@media (max-width: 900px) { .create-grid { grid-template-columns: 1fr; } }
+.create-copy { display: grid; gap: 20px; min-width: 0; }
+h2.big { font-size: clamp(2.2rem, 1.3rem + 3.6vw, 3.8rem); font-weight: 800; line-height: 1.02; }
+.pitch { display: grid; gap: 20px; margin-top: 8px; }
+.pitch > div { display: grid; gap: 6px; padding-left: 16px; border-left: 2px solid var(--accent-soft); }
+.pitch p { color: var(--muted); max-width: 60ch; }
+.share-demo { display: grid; gap: 14px; min-width: 0; }
+.share-card { border: 1px solid var(--line); border-radius: 16px; padding: 20px; background: var(--panel); display: grid; gap: 16px; box-shadow: 0 24px 80px var(--glow); }
+.share-top { display: flex; gap: 14px; align-items: center; }
+.share-top strong { display: block; font-family: var(--font-display); font-size: 1.3rem; line-height: 1.2; }
+.share-num { font-family: var(--font-display); font-weight: 800; font-size: 2rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.share-by { color: var(--muted); font-size: 0.88rem; }
+.poster-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.poster-row span {
+  aspect-ratio: 2 / 3; max-width: 100%; border-radius: 10px; padding: 10px; display: flex; align-items: flex-end;
+  font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; line-height: 1.15; color: #fff;
+  background: linear-gradient(160deg, hsl(var(--h) 55% 45%), hsl(calc(var(--h) + 40) 50% 22%));
+}
+.share-svc { color: var(--muted); font-size: 0.9rem; display: flex; gap: 8px; align-items: center; }
+.share-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.share-status { color: var(--on-air); font-size: 0.9rem; font-weight: 600; }
+.import-card { border: 1px dashed var(--accent-soft); border-radius: 14px; padding: 16px 18px; background: var(--panel); display: grid; gap: 8px; margin-left: 24px; }
+.import-card p { color: var(--muted); font-size: 0.95rem; }
+.import-card b { color: var(--text); }
+.import-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill-on, .pill-quiet { padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+.pill-on { background: var(--accent); color: var(--accent-ink); }
+.pill-quiet { border: 1px solid var(--line); color: var(--muted); }
+
+/* Steps: a real sequence, so they're numbered */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; counter-reset: step; }
+.step { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); display: grid; gap: 10px; align-content: start; }
+.step .n { font-family: var(--font-display); font-weight: 800; font-size: 0.9rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.step p { color: var(--muted); }
+
+/* Features as listing rows */
+.listing { display: grid; border-top: 1px solid var(--line); }
+.feat { display: grid; grid-template-columns: 220px 1fr; gap: 8px 32px; padding-block: 22px; border-bottom: 1px solid var(--line); }
+.feat p { color: var(--muted); max-width: 64ch; }
+@media (max-width: 680px) { .feat { grid-template-columns: 1fr; } }
+
+/* Services */
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.tier { border: 1px solid var(--line); border-radius: 14px; padding: 22px; background: var(--panel); display: grid; gap: 12px; align-content: start; }
+.tier.lime { background: var(--on-air-soft); border-color: var(--on-air-border); }
+.tier.gold { background: var(--gold-soft); border-color: var(--gold-border); }
+.tier .label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.tier.lime .label { color: var(--on-air); }
+.tier.gold .label { color: var(--gold); }
+.tier .label.violet { color: var(--accent); }
+.tier p { color: var(--muted); font-size: 0.95rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.85rem; background: var(--base); }
+.all-services { margin-top: 28px; color: var(--muted); font-size: 0.95rem; }
+.all-services summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.all-services .chips { margin-top: 14px; }
+
+/* Download */
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.dl { border: 1px solid var(--line); border-radius: 16px; padding: 26px; background: var(--panel); display: grid; gap: 14px; align-content: start; }
+.dl h3 { font-size: 1.4rem; }
+.dl .req { color: var(--muted); font-size: 0.92rem; }
+.dl ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.92rem; display: grid; gap: 4px; }
+.dl .ver { font-variant-numeric: tabular-nums; color: var(--subtle); font-size: 0.85rem; }
+.beta-note {
+  margin-top: 20px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--gold-border); background: var(--gold-soft);
+  color: var(--text); font-size: 0.95rem; display: grid; gap: 4px;
+}
+.beta-note b { color: var(--gold); }
+
+/* FAQ */
+.faq { display: grid; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); padding-block: 18px; }
+.faq summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
+.faq details[open] summary::after { content: "–"; }
+.faq details p { color: var(--muted); margin-top: 10px; max-width: 68ch; }
+
+footer { border-top: 1px solid var(--line); padding-block: 32px; color: var(--subtle); font-size: 0.88rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top" aria-label="OurTV home">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+        <rect x="1" y="4" width="26" height="20" rx="5" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <rect x="6" y="9" width="7" height="3" rx="1.5" fill="var(--on-air)"/>
+        <rect x="15" y="9" width="7" height="3" rx="1.5" fill="var(--accent)"/>
+        <rect x="6" y="15" width="11" height="3" rx="1.5" fill="var(--accent)"/>
+        <rect x="19" y="15" width="3" height="3" rx="1.5" fill="var(--gold)"/>
+      </svg>
+      <span>Our<span class="mark-tv">TV</span></span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#create">Make &amp; share</a>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#services">Services</a>
+      <a href="#faq">FAQ</a>
+      <a class="nav-cta" href="#download">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Our TV, now. &middot; Personal channels for your streaming services</p>
+      <h1>Make your own TV channels. <em>Share them with everyone.</em></h1>
+      <p class="lede">OurTV turns the services you already pay for into channels you program yourself, with a real guide. Every channel keeps running on a schedule. Press Watch and you join the episode already in progress, at the minute the guide says.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#download">Download OurTV</a>
+        <a class="btn btn-quiet" href="#create">Make a channel</a>
+      </div>
+      <p class="hero-note">For Windows 10/11 and Android. Your streaming logins stay on your own device.</p>
+    </div>
+
+    <div class="guide" aria-label="Example program guide">
+      <div class="guide-head">
+        <strong>Watch</strong>
+        <span class="clock">Example lineup &middot; now <b id="now">--:--</b></span>
+      </div>
+      <div class="guide-scroll">
+        <div class="guide-grid" id="guide">
+          <div class="g-row g-cols"><div>Channel</div><div>On now</div><div>Up next</div><div>After that</div></div>
+        </div>
+      </div>
+      <div class="tune" id="tune" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span>Select a program that's on now to see where OurTV would start it.</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="create" class="create">
+    <div class="wrap create-grid">
+      <div class="create-copy">
+        <p class="eyebrow">Make &amp; share</p>
+        <h2 class="big">You're the programmer now.</h2>
+        <p class="lede">Remember when a channel could feel like it was made for you? Make that channel. Put the shows and movies you love in the order you want, from any services you have, and it airs around the clock.</p>
+        <div class="pitch">
+          <div>
+            <h3>Program anything</h3>
+            <p>A Saturday-morning cartoon block. Every Cheers episode with the best of 90s sitcoms. A Nicolas Cage film festival. Mix shows from Hulu, Paramount+ and Netflix on one channel.</p>
+          </div>
+          <div>
+            <h3>Share it with a friend</h3>
+            <p>Export a channel and send it. Your friend imports their own copy that runs on their own schedule, using their own subscriptions.</p>
+          </div>
+          <div>
+            <h3>Post it for everyone</h3>
+            <p>Put your best channels in the Community for anyone to browse and copy. Build a showcase of your lineups and share one link to all of them.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-demo" aria-label="Example shared channel">
+        <div class="share-card">
+          <div class="share-top">
+            <span class="share-num">07</span>
+            <div>
+              <strong>Saturday Morning</strong>
+              <span class="share-by">by @cartoonkid &middot; 3 shows &middot; 214 episodes</span>
+            </div>
+          </div>
+          <div class="poster-row" aria-hidden="true">
+            <span style="--h: 28">The Angry Beavers</span>
+            <span style="--h: 200">Rocko's Modern Life</span>
+            <span style="--h: 340">The Ren &amp; Stimpy Show</span>
+          </div>
+          <div class="share-svc">Needs <span class="svc">Paramount+</span></div>
+          <div class="share-actions">
+            <button class="btn btn-primary" type="button" id="copyDemo">Share channel</button>
+            <span class="share-status" id="copyStatus" aria-live="polite"></span>
+          </div>
+        </div>
+        <div class="import-card">
+          <span class="eyebrow">Your friend sees</span>
+          <p><b>Import “Saturday Morning”?</b> 3 shows, 214 episodes. Needs Paramount+. Your library and services stay as they are.</p>
+          <div class="import-actions"><span class="pill-on">Add to my channels</span><span class="pill-quiet">Not now</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">How it works</p>
+        <h2>Three steps to your first channel</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Pick your services</h3>
+          <p>Select the subscriptions you have in <b>My services</b>. Only titles you can actually watch get airtime. Add a service later and its titles come back to the schedule on their own.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Build a channel</h3>
+          <p>Search for shows and movies, paste a link from a streaming site, or create a channel from a genre. Shows expand into their episodes in order. Drag titles to set the lineup.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>Press Watch now</h3>
+          <p>OurTV opens the right episode on your service and skips ahead to the guide position, so it feels like turning on a TV. Sign in once on your own device if the service asks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Features</p>
+        <h2>Everything in the app</h2>
+      </div>
+      <div class="listing">
+        <div class="feat"><h3>A live program guide</h3><p>See what's on now, up next and after that across all your channels. Schedules repeat around the clock, so a channel is always mid-show, the way cable worked.</p></div>
+        <div class="feat"><h3>Join at the guide position</h3><p>When you start a program that's already running, OurTV seeks to the right minute for you. Services that can't seek automatically open at the start and tell you where to skip to.</p></div>
+        <div class="feat"><h3>The right episode</h3><p>OurTV matches each guide episode to the service's own catalog by season, title and its neighbors in the series, even when a service numbers seasons differently. When a match isn't certain it says so instead of guessing.</p></div>
+        <div class="feat"><h3>Discover</h3><p>Browse the catalogs of the services you selected, play a title directly or add it to a channel. Automatic service channels can build a whole channel from one service's catalog.</p></div>
+        <div class="feat"><h3>Share channels</h3><p>Export a channel as a file and send it to a friend. Importing adds a copy with its own schedule. Your account settings and logins are never part of the file.</p></div>
+        <div class="feat"><h3>Community and showcases</h3><p>Post channels you've built, browse other people's lineups and copy the ones you like into your library.</p></div>
+        <div class="feat"><h3>Your library on every device</h3><p>Sign in to a OurTV account to back up your channels and preferences and sync them between your PC and phone. Streaming logins remain on each device.</p></div>
+        <div class="feat"><h3>Free channels built in</h3><p>Tubi, The Roku Channel and Pluto TV need no subscription. Add them to fill a guide on day one.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="services">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Services</p>
+        <h2>57 services and add-on packages</h2>
+        <p class="lede">You bring your own subscriptions. OurTV never asks for your streaming passwords. How a program starts depends on what each service allows.</p>
+      </div>
+      <div class="tiers">
+        <div class="tier lime">
+          <span class="label">Plays at the guide position</span>
+          <div class="chips"><span>Tubi</span><span>The Roku Channel</span><span>Pluto TV</span><span>HBO Max</span><span>Crunchyroll</span><span>Prime Video</span></div>
+          <p>Starts the episode and moves to the current guide minute. Free services play right inside OurTV.</p>
+        </div>
+        <div class="tier">
+          <span class="label violet">Being tested</span>
+          <div class="chips"><span>Hulu</span><span>Paramount+</span><span>Peacock</span><span>Disney+</span><span>Apple TV</span><span>Adult Swim</span></div>
+          <p>Episode matching works. Automatic seeking on signed-in accounts is still being checked service by service.</p>
+        </div>
+        <div class="tier gold">
+          <span class="label">Opens the service</span>
+          <div class="chips"><span>Netflix</span><span>and others</span></div>
+          <p>Opens the title in the official app or website. You start it there and skip to the time OurTV shows.</p>
+        </div>
+      </div>
+      <details class="all-services">
+        <summary>See every supported service</summary>
+        <div class="chips" id="allServices"></div>
+      </details>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Download</p>
+        <h2>Get OurTV</h2>
+        <p class="lede">OurTV is an app because the video comes from each streaming service's own protected player. The app is what lets it start the right episode and jump to the guide minute.</p>
+      </div>
+      <div class="downloads">
+        <div class="dl">
+          <h3>Windows</h3>
+          <p class="req">64-bit Windows 10 or 11</p>
+          <ul>
+            <li>Installs for your account, no administrator needed</li>
+            <li>No Chrome extension or browser setup</li>
+            <li>Sign-ins are saved only on your PC</li>
+          </ul>
+          <a class="btn btn-primary" id="dl-windows" href="#download">Download for Windows</a>
+          <span class="ver" id="ver-windows">Version 0.1.0 test build</span>
+        </div>
+        <div class="dl">
+          <h3>Android</h3>
+          <p class="req">Android phones and Android TV</p>
+          <ul>
+            <li>Installs as an APK outside the Play Store</li>
+            <li>Checks for updates inside the app</li>
+            <li>Opens services in their Android apps</li>
+          </ul>
+          <a class="btn btn-primary" id="dl-android" href="#download">Download for Android</a>
+          <span class="ver" id="ver-android">Version 0.49 beta</span>
+        </div>
+      </div>
+      <div class="beta-note" id="betaNote">
+        <b>Private beta</b>
+        <span>OurTV is in testing with a small group. Public downloads open once testing finishes. If you were invited, use the link you were sent.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Questions</p>
+        <h2>Frequently asked</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Can I use OurTV in a web browser?</summary>
+          <p>Not for watching. Streaming services play protected video in their own players, and a website can't open those players at a given minute. The Windows and Android apps can, which is what makes the guide feel live.</p>
+        </details>
+        <details>
+          <summary>Do I need to give OurTV my streaming passwords?</summary>
+          <p>No. You sign in to each service yourself on your own device, the same way you would in a browser or the service's app. OurTV never uploads your logins, cookies or browser profile.</p>
+        </details>
+        <details>
+          <summary>Does it include any shows or movies?</summary>
+          <p>No. OurTV schedules titles from the services you already subscribe to. What you can watch depends on your plans. Tubi, The Roku Channel and Pluto TV are free.</p>
+        </details>
+        <details>
+          <summary>What happens when a service can't skip ahead?</summary>
+          <p>The program opens from the beginning and OurTV shows the time to skip to. You can also pause automatic skipping for a service.</p>
+        </details>
+        <details>
+          <summary>Do I need a Chrome extension?</summary>
+          <p>No. There's nothing to install besides the app, and no browser settings to change.</p>
+        </details>
+        <details>
+          <summary>Can I move my channels to a new device?</summary>
+          <p>Yes. Sign in to a OurTV account to sync them, or use Back up everything in Settings to save a file and import it on the other device.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>OurTV &middot; Our TV, now. &middot; ourtvnow.com</span>
+    <span>Not affiliated with any streaming service. Show and service names belong to their owners.</span>
+  </div>
+</footer>
+
+<script>
+// Fill these in when a public download host exists. While empty, the page shows the private-beta note.
+const DOWNLOADS = { windows: '', android: '' };
+
+const SERVICES = ['Acorn TV','ALLBLK','AMC+','Apple TV','BritBox','The Criterion Channel','Crunchyroll','CuriosityStream','Discovery+','Disney+','ESPN','Fubo','Hallmark+','HBO Max','HIDIVE','Hoopla','Hulu','Kanopy','MGM+','MUBI','Netflix','Paramount+','PBS','Peacock','Philo','Plex','Pluto TV','Prime Video','The Roku Channel','Shudder','Sling TV','Starz','Sundance Now','Tubi','Viki','YouTube TV','Prime Video Channels add-ons','Apple TV Channels add-ons'];
+document.getElementById('allServices').innerHTML = SERVICES.map(s => `<span>${s}</span>`).join('');
+
+// The demo card has no real channel behind it, so the button only shows what would happen.
+document.getElementById('copyDemo').addEventListener('click', () => {
+  document.getElementById('copyStatus').textContent = 'In the app, this saves the channel as a file you can send to anyone.';
+});
+
+let anyDownload = false;
+for (const [os, url] of Object.entries(DOWNLOADS)) {
+  const a = document.getElementById('dl-' + os);
+  if (url) { a.href = url; anyDownload = true; }
+  else { a.setAttribute('aria-disabled', 'true'); a.textContent = 'Invite only for now'; a.addEventListener('click', e => e.preventDefault()); }
+}
+if (anyDownload && Object.values(DOWNLOADS).every(Boolean)) document.getElementById('betaNote').hidden = true;
+
+// Example lineups. Like the app, a channel rotates through its shows from a fixed anchor time,
+// and each show moves on to its next episode every time it comes back around.
+const ANCHOR = Date.UTC(2026, 0, 1, 5, 0, 0);
+const CHANNELS = [
+  { num: '04', name: 'Animation Night', shows: [
+    ['American Dad!', 'Hulu', 22, ['S1 E1 · Pilot', 'S3 E8 · The Most Adequate Christmas Ever', 'S6 E1 · 100 A.D.', 'S6 E2 · Son of Stan']],
+    ['Futurama', 'Hulu', 22, ['S1 E1 · Space Pilot 3000', 'S1 E2 · The Series Has Landed', 'S1 E3 · I, Roommate', 'S2 E4 · Xmas Story']],
+    ['King of the Hill', 'Hulu', 22, ['S1 E1 · Pilot', 'S1 E2 · Square Peg', 'S3 E1 · Death of a Propane Salesman']],
+    ['Rick and Morty', 'HBO Max', 22, ['S1 E1 · Pilot', 'S1 E2 · Lawnmower Dog', 'S1 E3 · Anatomy Park', 'S1 E5 · Meeseeks and Destroy']],
+    ['Archer', 'Hulu', 21, ['S1 E1 · Mole Hunt', 'S1 E2 · Training Day', 'S1 E3 · Diversity Hire']] ] },
+  { num: '07', name: 'Saturday Morning', shows: [
+    ['The Angry Beavers', 'Paramount+', 11, ['S4 E3 · Fat Chance!', 'S4 E4 · Dag in the Mirror']],
+    ["Rocko's Modern Life", 'Paramount+', 11, ['S1 E1 · No Pain, No Gain', 'S1 E2 · Who Gives a Buck']],
+    ['The Ren & Stimpy Show', 'Paramount+', 11, ['S1 E3 · Robin Höek', 'S1 E4 · Nurse Stimpy']] ] },
+  { num: '12', name: 'Must-See Sitcoms', shows: [
+    ['Cheers', 'Hulu', 25, ['S2 E4 · Homicidal Ham', 'S2 E5 · Sumner’s Return', 'S2 E6 · Affairs of the Heart']],
+    ['Seinfeld', 'Netflix', 23, ['S3 E6 · The Parking Garage', 'S4 E11 · The Contest', 'S4 E17 · The Outing']],
+    ['The Office', 'Peacock', 22, ['S2 E1 · The Dundies', 'S2 E12 · The Injury', 'S4 E13 · Dinner Party']],
+    ['Frasier', 'Paramount+', 22, ['S1 E1 · The Good Son', 'S1 E2 · Space Quest', 'S1 E3 · Dinner at Eight']] ] },
+  { num: '23', name: 'Late Night Sci-Fi', shows: [
+    ['The X-Files', 'Pluto TV', 45, ['S1 E1 · Pilot', 'S1 E2 · Deep Throat', 'S1 E3 · Squeeze']],
+    ['The Twilight Zone', 'Paramount+', 25, ['S1 E8 · Time Enough at Last', 'S2 E6 · Eye of the Beholder', 'S5 E3 · Nightmare at 20,000 Feet']],
+    ['Star Trek: The Next Generation', 'Pluto TV', 45, ['S3 E15 · Yesterday’s Enterprise', 'S3 E26 · The Best of Both Worlds', 'S5 E2 · Darmok']] ] },
+  { num: '31', name: 'Anime Block', shows: [
+    ['Cowboy Bebop', 'Crunchyroll', 24, ['S1 E1 · Asteroid Blues', 'S1 E5 · Ballad of Fallen Angels']],
+    ['Dragon Ball Z', 'Crunchyroll', 24, ['S1 E1 · The New Threat', 'S1 E2 · Reunions', 'S1 E3 · Unlikely Alliance']],
+    ['Mob Psycho 100', 'Crunchyroll', 24, ['S1 E1 · Self-Proclaimed Psychic', 'S1 E2 · Doubts About Youth']] ] },
+];
+
+const fmtClock = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const fmtPos = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function slots(ch, now) {
+  // One pass plays every show once; the pass number picks each show's episode.
+  const pass = ch.shows.reduce((t, s) => t + s[2], 0) * 60000;
+  let round = Math.floor((now - ANCHOR) / pass);
+  let start = ANCHOR + round * pass, i = 0, out = [];
+  while (start + ch.shows[i][2] * 60000 <= now) { start += ch.shows[i][2] * 60000; i++; }
+  for (let k = 0; k < 3; k++) {
+    const [title, svc, minutes, eps] = ch.shows[i];
+    out.push({ title, svc, ep: eps[round % eps.length], start, end: start + minutes * 60000 });
+    start += minutes * 60000;
+    if (++i === ch.shows.length) { i = 0; round++; }
+  }
+  return out;
+}
+
+const guide = document.getElementById('guide');
+const tune = document.getElementById('tune');
+let selected = null;
+
+let shownKey = '';
+
+function render() {
+  const now = Date.now();
+  document.getElementById('now').textContent = fmtClock(new Date(now));
+  // Rebuild rows only when a program changes, so keyboard focus survives the per-second tick.
+  const key = CHANNELS.map(ch => slots(ch, now)[0].start).join();
+  if (key === shownKey) {
+    guide.querySelectorAll('button.g-prog').forEach(b => {
+      const [on] = slots(CHANNELS[b.dataset.ch], now);
+      b.querySelector('.bar i').style.width = (((now - on.start) / (on.end - on.start)) * 100).toFixed(1) + '%';
+    });
+    if (selected !== null) showTune(selected, now);
+    return;
+  }
+  shownKey = key;
+  guide.querySelectorAll('.g-row:not(.g-cols)').forEach(r => r.remove());
+  CHANNELS.forEach((ch, idx) => {
+    const [on, next, after] = slots(ch, now);
+    const pct = ((now - on.start) / (on.end - on.start)) * 100;
+    const row = document.createElement('div');
+    row.className = 'g-row';
+    row.innerHTML = `
+      <div class="g-ch"><span class="num">${ch.num}</span><span class="name">${esc(ch.name)}</span></div>
+      <button class="g-prog now" type="button" data-ch="${idx}" aria-label="Watch ${esc(on.title)}, ${esc(on.ep)}">
+        <span class="t">${esc(on.title)}</span><span class="ep">${esc(on.ep)}</span>
+        <span class="meta"><span class="svc">${esc(on.svc)}</span>${fmtClock(new Date(on.start))}–${fmtClock(new Date(on.end))}</span>
+        <span class="bar" aria-hidden="true"><i style="width:${pct.toFixed(1)}%"></i></span>
+      </button>
+      ${[next, after].map(p => `
+      <div class="g-prog later">
+        <span class="t">${esc(p.title)}</span><span class="ep">${esc(p.ep)}</span>
+        <span class="meta"><span class="svc">${esc(p.svc)}</span><b>${fmtClock(new Date(p.start))}</b></span>
+      </div>`).join('')}`;
+    guide.appendChild(row);
+  });
+  if (selected !== null) showTune(selected, now);
+}
+
+function showTune(idx, now = Date.now()) {
+  selected = idx;
+  const ch = CHANNELS[idx], [on] = slots(ch, now);
+  const into = (now - on.start) / 1000;
+  tune.innerHTML = `<span class="dot" aria-hidden="true"></span>
+    <span>Channel ${ch.num}: opening <b>${esc(on.title)}</b> ${esc(on.ep.split(' · ')[0])} on ${esc(on.svc)}, starting at <span class="pos">${fmtPos(into)}</span></span>`;
+}
+
+guide.addEventListener('click', e => {
+  const b = e.target.closest('button.g-prog');
+  if (b) showTune(Number(b.dataset.ch));
+});
+
+render();
+setInterval(render, 1000);
+</script>
+</body>
+</html>
